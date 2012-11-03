@@ -11,13 +11,32 @@
 
 ##################################  HOST CONFIG ENV   ##################################
 EXPECTED_ARGS=1
-CMP_PKGS="automake bison curl cvs flex g++ gawk libncurses5-dev libtool texinfo"
-DBG_PKGS="minicom xinetd tftpd tftp"
+
+CMP_PKGS=(    "automake"
+              "bison"
+              "curl"
+              "cvs"
+              "flex"
+              "g++"
+              "gawk"
+              "libncurses5-dev"
+              "libtool"
+              "texinfo"
+         )
+
+DBG_PKGS=(    "minicom"
+              "xinetd"
+              "tftpd"
+              "tftp"
+         )
+
 DEFAULT_BEAGLE_BOARD_PATH=${HOME}/beagle
 CROSSTOOL="crosstool-ng-1.9.1"
 TOOLCHAIN_URL="http://crosstool-ng.org/download/crosstool-ng/"
 TARBALL=".tar.bz2"
 SCRIPT_HOME_DIR=$PWD
+ECHO="/bin/echo -e" # works under Linux.
+COLOR=0             # with screen, tee and friends put 1 here (i.e. no color)
 
 ##################################  UBOOT CONFIG ENV  ##################################
 BOOT_CMD="bootm 0x82000000"
@@ -27,15 +46,60 @@ DEFAULT_BBXM_MAC_ADDRESS="22:22:23:54:56:44"
 DEFAULT_BBXM_IP_ADDRESS="192.168.1.253" # to improve
 #DEFAULT_SERVER_IP_ADDRESS= `for i in $(ifconfig |grep "inet addr"|awk '{print $2}'|cut -d ":" -f 2); do { if [ $i -ne "127.0.0.1" ]; then echo $i fi }; done;`
 DEFAULT_SERVER_IP_ADDRESS="192.168.1.252" # to improve
-##################################   SCRIPT START     ##################################
-install_comp_pkg()
+
+###################################### FUNCTIONS ######################################
+# some functions for text:
+off() {
+  if [ $COLOR = 0 ]; then $ECHO "\033[0;37m "; fi
+}
+
+blue() {
+  if [ $COLOR = 0 ]; then $ECHO "\033[1;34m$* "; else $ECHO "$* "; fi
+  off
+}
+
+yellow() {
+  if [ $COLOR = 0 ]; then $ECHO "\033[1;33m$* "; else $ECHO "$* "; fi
+  off
+}
+
+red() {
+  if [ $COLOR = 0 ]; then $ECHO "\033[1;31m$* "; else $ECHO "**$*** "; fi
+  off
+}
+
+orange() {
+  if [ $COLOR = 0 ]; then $ECHO "\033[5;33m$* "; else $ECHO "$* "; fi
+  off
+}
+
+green() { 
+  if [ $COLOR = 0 ]; then $ECHO "\033[1;32m$* "; else $ECHO "$* "; fi
+  off
+}
+
+bold() {
+  $ECHO "\033[1m$1"
+  off
+}
+
+function install_comp_pkg
 {
-for i in $PACKAGE_LIST;
-do
-  echo "    * Installing package "$i; sudo apt-get install -y $i 1> /dev/null |grep "error" > /dev/null;
+  # Setting the shell's Internal Field Separator to null
+  OLD_IFS=$IFS
+  IFS=''
+  local array_string="$1[*]"
+  local pkg_list=(${!array_string})
+  IFS=$OLD_IFS
+  idx=1
+
+  for item in ${pkg_list[*]};
+  do
+  echo "    * Installing package "$item; sudo apt-get install -y $item 1> /dev/null |grep "error" > /dev/null;
   if [ $? == 0 ];
-    then echo "error found while installing package" $i;
-  fi; done;
+    then red "error found while installing package" $item;
+  fi;
+  done;
 }
 
 progressfilt ()
@@ -63,11 +127,11 @@ progressfilt ()
 
 crosstl_dwl_install_pkg()
 {
-  echo "    * Download in Progress : "
+  blue "    * Download in Progress : "
   wget --progress=bar:force ${TOOLCHAIN_URL}${CROSSTOOL}${TARBALL} 2>&1 | progressfilt
   if [ -f ${CROSSTOOL}${TARBALL} ]
   then
-  echo "    * Installing in Progress : "
+  blue "    * Installing in Progress : "
     pv ${CROSSTOOL}${TARBALL} |tar xjf -
     cd $CROSSTOOL
     echo ""
@@ -81,7 +145,7 @@ crosstl_dwl_install_pkg()
     cp $SCRIPT_HOME_DIR/.config .
     ct-ng build
   else
-    echo "Failed to DWL file :" ${CROSSTOOL}${TARBALL}
+    red "Failed to DWL file :" ${CROSSTOOL}${TARBALL}
   fi
 }
 
@@ -91,7 +155,7 @@ echo "   Install Toolchain using Crosstool-NG : "
 PKG_DIR=$CROSSTOOL
 PKG_TARBALL="${PKG_DIR}.tar.bz2"
 PKG_URL="${TOOLCHAIN_URL}${PKG_TARBALL}"
-  echo "    * Download in Progress : "
+  blue "    * Download in Progress : "
   wget --progress=bar:force $PKG_URL 2>&1 | progressfilt
   if [ -f $PKG_TARBALL ]
   then
@@ -102,7 +166,7 @@ PKG_URL="${TOOLCHAIN_URL}${PKG_TARBALL}"
     sh -c "make"
     sh -c "sudo make install"
   else
-    echo "Failed to DWL file :" $PKG_TARBALL
+    red "Failed to DWL file :" $PKG_TARBALL
   fi
 }
 
@@ -145,35 +209,45 @@ cfg_BBxM_uboot()
   fi
 }
 
-# Software requirement.
-echo ""
-echo " |=========================================|"
-echo " |  Welcome to BBxM prepare environnement  |"
-echo " |=========================================|"
-echo ""
-echo "   Install path preference : "
 
-if [ $# -ne $EXPECTED_ARGS ]
-then
-  INSTALL_PATH=$DEFAULT_BEAGLE_BOARD_PATH
-  echo "    INSTALL_PATH preferred : none."
-  echo "    INSTALL_PATH=$DEFAULT_BEAGLE_BOARD_PATH"
-else
-  INSTALL_PATH="${1}/beagle"
-  echo "    INSTALL_PATH preferred : detected."
-  echo "    INSTALL_PATH=$INSTALL_PATH"
-fi
+chk_parms()
+{
+  local PARAMS_NUM=$1
+  local PREF_DIR_INSTALL=$2
+
+  if [ $PARAMS_NUM -ne $EXPECTED_ARGS ]
+  then
+    INSTALL_PATH=$DEFAULT_BEAGLE_BOARD_PATH
+    orange "    INSTALL_PATH preferred : none."
+    orange "    INSTALL_PATH=$DEFAULT_BEAGLE_BOARD_PATH"
+  else
+    INSTALL_PATH="${PREF_DIR_INSTALL}/beagle"
+    green "    INSTALL_PATH preferred : detected."
+    green "    INSTALL_PATH=$INSTALL_PATH"
+  fi
+}
+
+##################################   SCRIPT START     ##################################
+yellow ""
+yellow " |=========================================|"
+yellow " |  Welcome to BBxM prepare environnement  |"
+yellow " |=========================================|"
+yellow ""
+yellow "   Install path preference : "
+
+chk_parms $# $1
+
 
 sed -i "s/INSTALL_PATH/$(echo $INSTALL_PATH |sed 's/\//\\\//g')/g" ".config"
 
-echo ""
-echo "   Install necessary packages for compilation : "
-PACKAGE_LIST=$CMP_PKGS;
-install_comp_pkg
-echo ""
-echo "   Install necessary packages for debug : "
-PACKAGE_LIST=$DBG_PKGS;
-install_comp_pkg
+blue ""
+blue "   Install necessary packages for compilation : "
+install_comp_pkg CMP_PKGS
+
+blue ""
+blue "   Install necessary packages for debug : "
+install_comp_pkg DBG_PKGS
+
 echo ""
 mkdir -p $INSTALL_PATH
 cd $INSTALL_PATH
