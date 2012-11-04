@@ -83,6 +83,23 @@ bold() {
   off
 }
 
+chk_parms()
+{
+  local PARAMS_NUM=$1
+  local PREF_DIR_INSTALL=$2
+
+  if [ $PARAMS_NUM -ne $EXPECTED_ARGS ]
+  then
+    INSTALL_PATH=$DEFAULT_BEAGLE_BOARD_PATH
+    orange "    INSTALL_PATH preferred : none."
+    orange "    INSTALL_PATH=$DEFAULT_BEAGLE_BOARD_PATH"
+  else
+    INSTALL_PATH="${PREF_DIR_INSTALL}/beagle"
+    green "    INSTALL_PATH preferred : detected."
+    green "    INSTALL_PATH=$INSTALL_PATH"
+  fi
+}
+
 function install_comp_pkg
 {
   # Setting the shell's Internal Field Separator to null
@@ -102,6 +119,36 @@ function install_comp_pkg
   done;
 }
 
+function valid_ip()
+{
+    local  ip=$1
+    local  stat=1
+
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS=$IFS
+        IFS='.'
+        ip=($ip)
+        IFS=$OIFS
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+            && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    return $stat
+}
+
+function valid_mac()
+{
+    local  mac=$1
+    local  stat=1
+    if [[ $mac =~ ^([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])$ ]]; then
+        OIFS=$IFS
+        IFS=':'
+        mac=($mac)
+        IFS=$OIFS
+       stat=$?
+    fi
+    return $stat
+}
 progressfilt ()
 {
     local flag=false c count cr=$'\r' nl=$'\n'
@@ -177,53 +224,35 @@ cfg_BBxM_uboot()
   echo "       --> Enter BBxM MAC_ADDRESS :"
   read BBXM_MAC_ADDRESS
   if [ -z "$BBXM_MAC_ADDRESS" ]; then
-    echo "       ==> No mac address ? using default :" $DEFAULT_BBXM_MAC_ADDRESS
+    orange "       ==> No mac address ? using default :" $DEFAULT_BBXM_MAC_ADDRESS
   else
-     if [[ ! "$BBXM_MAC_ADDRESS" =~ "^([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])$" ]]; then
-       echo "       ==> Wrong mac address ? using default :" $DEFAULT_BBXM_MAC_ADDRESS
+     if valid_mac $BBXM_MAC_ADDRESS; then
+       green "       ==> using mac address :" $BBXM_MAC_ADDRESS
      else
-       echo "       ==> using mac address :" $DEFAULT_BBXM_MAC_ADDRESS
+       red "       ==> Wrong mac address ? using default :" $DEFAULT_BBXM_MAC_ADDRESS
      fi
   fi
   echo "       --> Enter BBxM IP_ADDRESS :"
   read BBXM_IP_ADDRESS
   if [ -z "$BBXM_IP_ADDRESS" ]; then
-    echo "       ==> No ip address ? using default :" $DEFAULT_BBXM_IP_ADDRESS
+    orange "       ==> No ip address ? using default :" $DEFAULT_BBXM_IP_ADDRESS
   else
-     if [[ ! "$BBXM_IP_ADDRESS" =~ "^([0-9][0-9]|[0-9a][0-9][0_9].){2}([0-9a][0-9]|[0-9a][0-9][0_9])$" ]]; then
-       echo "       ==> Wrong ip address ? using default :" $DEFAULT_BBXM_IP_ADDRESS
+    if valid_ip $BBXM_IP_ADDRESS; then
+       green "       ==> using ip address :" $BBXM_IP_ADDRESS
      else
-       echo "       ==> using ip address :" $DEFAULT_BBXM_IP_ADDRESS
+       red "       ==> Wrong ip address ? using default :" $DEFAULT_BBXM_IP_ADDRESS
      fi
   fi
   echo "       --> Enter SERVER IP_ADDRESS :"
   read SERVER_IP_ADDRESS
   if [ -z "$SERVER_IP_ADDRESS" ]; then
-    echo "       ==> No ip address ? using default :" $DEFAULT_SERVER_IP_ADDRESS
+    orange "       ==> No ip address ? using default :" $DEFAULT_SERVER_IP_ADDRESS
   else
-     if [[ ! "$SERVER_IP_ADDRESS" =~ "^([0-9][0-9]|[0-9a][0-9][0_9].){2}([0-9a][0-9]|[0-9a][0-9][0_9])$" ]]; then
-       echo "       ==> Wrong ip address ? using default :" $DEFAULT_SERVER_IP_ADDRESS
+    if valid_ip $SERVER_IP_ADDRESS; then
+       green "       ==> using ip address :" $SERVER_IP_ADDRESS
      else
-       echo "       ==> using ip address :" $DEFAULT_SERVER_IP_ADDRESS
+       red "       ==> Wrong ip address ? using default :" $DEFAULT_SERVER_IP_ADDRESS
      fi
-  fi
-}
-
-
-chk_parms()
-{
-  local PARAMS_NUM=$1
-  local PREF_DIR_INSTALL=$2
-
-  if [ $PARAMS_NUM -ne $EXPECTED_ARGS ]
-  then
-    INSTALL_PATH=$DEFAULT_BEAGLE_BOARD_PATH
-    orange "    INSTALL_PATH preferred : none."
-    orange "    INSTALL_PATH=$DEFAULT_BEAGLE_BOARD_PATH"
-  else
-    INSTALL_PATH="${PREF_DIR_INSTALL}/beagle"
-    green "    INSTALL_PATH preferred : detected."
-    green "    INSTALL_PATH=$INSTALL_PATH"
   fi
 }
 
