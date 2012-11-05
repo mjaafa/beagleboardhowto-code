@@ -7,6 +7,7 @@
 # WhatNext  :
 # version   : alpha
 # Reference : http://www.aclevername.com/articles/linux-xilinx-tutorial/crosstool-ng-1.3.2.html
+#             http://www.labbookpages.co.uk/electronics/beagleBoard/custom.html
 #
 
 ##################################  HOST CONFIG ENV   ##################################
