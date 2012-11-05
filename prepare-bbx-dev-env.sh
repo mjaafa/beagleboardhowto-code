@@ -32,7 +32,7 @@ DBG_PKGS=(    "minicom"
 
 DEFAULT_BEAGLE_BOARD_PATH=${HOME}/beagle
 CROSSTOOL="crosstool-ng-1.9.1"
-TOOLCHAIN_CFG_FL=".config"
+TOOLCHAIN_CFG_FL=".crosstool-ng.config"
 TFTPBOOT_CFG_FL=".boot.cmd"
 BBXM_TFTP_CFG="boot.scr"
 TOOLCHAIN_URL="http://crosstool-ng.org/download/crosstool-ng/"
@@ -40,7 +40,7 @@ TARBALL=".tar.bz2"
 SCRIPT_HOME_DIR=$PWD
 ECHO="/bin/echo -e" # works under Linux.
 COLOR=0             # with screen, tee and friends put 1 here (i.e. no color)
-
+CFG_FL=".config"
 UBOOT="u-boot-2010.12-rc3"
 UBOOT_URL="ftp://ftp.denx.de/pub/u-boot/"
 KERNEL="linux-2.6.36.2"
@@ -48,6 +48,8 @@ KERNEL_URL="http://www.kernel.org/pub/linux/kernel/v2.6/"
 KERNEL_CFG_FL=".kernel.config"
 MLO="MLO"
 MLO_URL="http://www.angstrom-distribution.org/demo/beagleboard/"
+BUILDROOT="buildroot-2010.11"
+BUILDROOT_URL="http://www.buildroot.org/downloads/"
 ##################################  UBOOT CONFIG ENV  ##################################
 TFTP_BOOT_UIMAGE_DWL="tftpboot 0x82000000 uImage"
 TFTP_BOOT_UINITRD_DWL="tftpboot 0x88000000 uInitrd"
@@ -234,7 +236,7 @@ crosstl_dwl_install_pkg()
     cd ..
     mkdir ct-build src
     cd ct-build
-    cp $SCRIPT_HOME_DIR/${TOOLCHAIN_CFG_FL} .
+    cp $SCRIPT_HOME_DIR/${TOOLCHAIN_CFG_FL} ${CFG_FL}
     ct-ng build
   else
     red "Failed to DWL file :" ${CROSSTOOL}${TARBALL}
@@ -268,7 +270,7 @@ kernel_dwl_install_pkg()
     cd $KERNEL
     blue "    * Configure in Progress : "
     echo ""
-    cp ${SCRIPT_HOME_DIR}"/"${KERNEL_CFG_FL} ".config"
+    cp ${SCRIPT_HOME_DIR}"/"${KERNEL_CFG_FL} ${CFG_FL}
     make ARCH=arm menuconfig
     export CROSS_COMPILE=arm-unknown-linux-gnueabi-
     export PATH=${INSTALL_PATH}"/x-tools/bin:$PATH"
@@ -279,6 +281,25 @@ kernel_dwl_install_pkg()
   fi
 
 }
+
+buildroot_dwl_install_pkg()
+{
+  blue "   Configure : " $BUILDROOT
+  if dwl_pkg $BUILDROOT $BUILDROOT_URL $TARBALL; then
+    umask 022
+    cd $BUILDROOT
+    blue "    * Configure in Progress : "
+    echo ""
+    cp ${SCRIPT_HOME_DIR}"/"${BUILDROOT_CFG_FL} ${CFG_FL}
+    make menuconfig
+    make
+    cp ${INSTALL_PATH}"/"${BUILDROOT}"/"arch/arm/boot/uImage ${INSTALL_PATH}
+  else
+    red "Failed to DWL file :" ${BUILDROOT}${TARBALL}
+  fi
+
+}
+
 cfg_BBxM_uboot()
 {
   echo "   Configure UBOOT : "
@@ -370,7 +391,7 @@ sed -i "s/INSTALL_PATH/$(echo $INSTALL_PATH |sed 's/\//\\\//g')/g" ${TOOLCHAIN_C
 
 blue ""
 blue "   Install necessary packages for compilation : "
-##install_comp_pkg CMP_PKGS
+install_comp_pkg CMP_PKGS
 
 blue ""
 blue "   Install necessary packages for debug : "
@@ -394,4 +415,8 @@ cd $INSTALL_PATH
 
 #KERNEL_CFG
 kernel_dwl_install_pkg
+cd $INSTALL_PATH
+
+#BUILDROOT_CFG
+buildroot_dwl_install_pkg
 cd $INSTALL_PATH
