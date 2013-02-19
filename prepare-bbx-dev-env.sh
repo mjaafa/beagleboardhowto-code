@@ -52,7 +52,7 @@ KERNEL_CFG_FL=".kernel.config"
 BUILDROOT_CFG_FL=".buildroot.config"
 MLO="MLO"
 MLO_URL="http://www.angstrom-distribution.org/demo/beagleboard/"
-BUILDROOT="buildroot-2010.11"
+BUILDROOT="buildroot-2011.11"
 BUILDROOT_URL="http://www.buildroot.org/downloads/"
 ##################################  UBOOT CONFIG ENV  ##################################
 TFTP_BOOT_UIMAGE_DWL="tftpboot 0x82000000 uImage"
@@ -298,7 +298,6 @@ buildroot_dwl_install_pkg()
     sed -i "s/INSTALL_PATH/$(echo $INSTALL_PATH |sed 's/\//\\\//g')/g" ${CFG_FL}
     make menuconfig
     make
-    cp ${INSTALL_PATH}"/"${BUILDROOT}"/"arch/arm/boot/uImage ${INSTALL_PATH}
   else
     red "Failed to DWL file :" ${BUILDROOT}${TARBALL}
   fi
