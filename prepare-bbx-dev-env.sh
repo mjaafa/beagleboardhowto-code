@@ -23,6 +23,8 @@ CMP_PKGS=(    "automake"
               "libncurses5-dev"
               "libtool"
               "texinfo"
+              "gettext"
+              "subversion"
          )
 
 DBG_PKGS=(    "minicom"
@@ -47,6 +49,7 @@ UBOOT_URL="ftp://ftp.denx.de/pub/u-boot/"
 KERNEL="linux-2.6.36.2"
 KERNEL_URL="http://www.kernel.org/pub/linux/kernel/v2.6/"
 KERNEL_CFG_FL=".kernel.config"
+BUILDROOT_CFG_FL=".buildroot.config"
 MLO="MLO"
 MLO_URL="http://www.angstrom-distribution.org/demo/beagleboard/"
 BUILDROOT="buildroot-2010.11"
@@ -292,6 +295,7 @@ buildroot_dwl_install_pkg()
     blue "    * Configure in Progress : "
     echo ""
     cp ${SCRIPT_HOME_DIR}"/"${BUILDROOT_CFG_FL} ${CFG_FL}
+    sed -i "s/INSTALL_PATH/$(echo $INSTALL_PATH |sed 's/\//\\\//g')/g" ${CFG_FL}
     make menuconfig
     make
     cp ${INSTALL_PATH}"/"${BUILDROOT}"/"arch/arm/boot/uImage ${INSTALL_PATH}
@@ -370,6 +374,7 @@ cfg_BBxM_uboot()
   sed -i "s/BBXM_IP/$(echo $BBXM_IP_ADDRESS |sed 's/\//\\\//g')/g" ${TFTPBOOT_CFG_FL}
   sed -i "s/NETMASK/$(echo $NETWORK_MASK |sed 's/\//\\\//g')/g" ${TFTPBOOT_CFG_FL}
   sed -i "s/BBXM_DVI_RESOLUTION/$(echo $DEFAULT_BBXM_DVI_RESOLUTION |sed 's/\//\\\//g')/g" ${TFTPBOOT_CFG_FL}
+  sed -i "s/INSTALL_PATH/$(echo $INSTALL_PATH |sed 's/\//\\\//g')/g" ${TFTPBOOT_CFG_FL}
   echo $TFTP_BOOT_UIMAGE_DWL  >> ${TFTPBOOT_CFG_FL}
   echo $TFTP_BOOT_UINITRD_DWL >> ${TFTPBOOT_CFG_FL}
   echo $BOOT_CMD              >> ${TFTPBOOT_CFG_FL}
